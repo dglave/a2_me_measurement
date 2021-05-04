@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(DeclareDesign)
 library(knitr)
-
+library(kableExtra)
 ```
 
 
@@ -23,11 +23,9 @@ Base Theory of Change from Rare: https://www.europarc.org/wp-content/uploads/201
 
 #### I'll start by exploring code to code out responses for visual underwater surveys. 
 
-- The goal: Understnad the ratio of fishstock biomass inside and outside of a sanctuary no-take zone. 
+- The goal: Understand the ratio of fishstock biomass inside and outside of a sanctuary no-take zone. 
 - Method: Research divers move along two transects (4 sites per transect) inside and outside the sanctuary, twice per year. Once during psawning season for the species, once at six months after spawning
-- We'll categorize the possible rations by dividing the "outside" fish biomass (numbers of adults) with "inside" fish. We expect this measurement to between 0 and 1. But the possibility remains of sampling more adult fish outside of the sanctuary. Because of this, I'll leave the possible outputs on a continuos scale with limits of 0 and 2. (Our goal for economic fishery productivity is 0.6, per Rare's oher resources.)
-
-
+- We'll categorize the possible rations by dividing the "outside" fish biomass (numbers of adults) with "inside" fish. We expect this measurement to between 0 and 1. But the possibility remains of sampling more adult fish outside of the sanctuary. Because of this, I'll leave the possible outputs on a continuos scale with limits of 0 and 2. (Our goal for economic fishery productivity is 0.6, per Rare's other resources.)
 
 
 ```{r}
@@ -58,7 +56,7 @@ set.seed(228)
 
 population_illegal <- declare_population(
   fishers = add_level(N=75, 
-     illegal_fishing=sample(c(rep(0,25),rep(1,50))),
+     illegal_fishing=sample(c(rep(0,50),rep(1,25))),
      reported=correlate(given = illegal_fishing, rho = 0.5,
                          draw_binary, prob = 0.7)
 ))
@@ -68,7 +66,107 @@ pop_illegal <- population_illegal()
 ## Using Mark's code, I made the total number of fishers "fishers" N=75
 ## Then created "illegal_fishing" to represent the total fishers who fish in the sanctuary. ***Not sure how to do this, since I said that each vessel SEEN in the sanctuary is reported, and that would mean the same vessel can be counted twice***
 ## Last I make "reported" for the proportion that are seen by the enforcement officers.  
+
+# Just to see this, here is a kable() table. 
+
+kable(table(pop_illegal$illegal_fishing,pop_illegal$reported)) %>%
+ add_header_above(c("illegal_fishing"=1,"reported"=2))
+
+```
+Here, we see out of 75 fishers in the region, we see 25 counts of fishing illegally, 13/15 are reported by the *guards*  
+
+I'll look at how we would view a response bias
+
+
+## Declaring response bias
+I first wrote this out ot try and represent the fishers who were "seen" by enforcement officers. However, 
+```{r}
+# reporting <- declare_assignment(blocks=illegal_fishing,
+#                   assignment_variable = "R", 
+#                   block_prob=c(0.2,0.5))
+
 ```
 
+Let's create a sample population, and I'll try and do some simulations! 
+```{r samp-character, echo=FALSE}
+
+sims <- 1000 #simulations
+sam.n <- 30 #attempted sample size
+
+
+store <- rep(NA, sims)
+for (i in 1:sims){
+  store[i] <- mean(pop_illegal[sample(1:500,sam.n),] %>%
+                    # filter(R==1) %>%  ## If they are seen or "respond"
+                     pull(reported))
+}
+# we're taking a random sample of fishers, We are looking at how many fishers are reported for illegal fishing, but we do not include a reporting bias.  We do this "sims" number of times (1000).
+
+```
+
+
+#### Survey Question 1: 
+
+Are fish stocks increasing, decreasing or staying the same? 
+
+
+2. Declaration of the hypothetical population
+```{r population, echo=FALSE}
+## Declaring a population
+
+set.seed(228)
+# assumed "educated" characteristic of fisher population
+population_2 <- declare_population(
+  fishers = add_level(N=100,
+     main_port=sample(c(rep(0,50),rep(1,50))),
+     educated=correlate(given = educated, rho = 0.5,
+                         draw_binary, prob = 0.5)
+
+))
+pop_2 <- population_2() #PH: we're using Declare Design here to create a population of 100 fishers, half of which are educated (answer the question correctly). Then, we're telling R to use whether or not fishers are educated to determine whether they avoid the sanctuary. We assume that fisher knowledge about the issue of stock decreases is correlated with the preventative measure of avoiding the sanctuary.
+
+kable(table(pop_2$educated,pop_2$avoid_sanctuary)) %>% 
+  add_header_above(c("main_port"=1,"educated"=2))
+```
+
+3. The challenges to drawing a representative sample likely involves an inability to access certain groups of fishers:
+    - There may not be a defined point of takeoff/return for fishers. Less educated fishers may be more likely to be departing from dispersed areas.
+    - Less educated fishers may be more likely to avoid surveyers.
+Also, availability: 
+- If we want to survey the same fishers each year to see if exact individual knowledge has changed, it may be hard to track them down.
+
+4. Declaration of reporting probabilities (response bias)
+
+```{r diff-reporting, echo=FALSE}
+
+reporting <- declare_assignment(blocks=educated,
+                  assignment_variable = "R", 
+                  block_prob=c(0.7,0.9)) 
+pop_reporting <- reporting(pop_2)
+# check it out
+kable(pop_reporting[1:10,])
+table(pop_reporting$educated, pop_reporting$R)
+```
+
+Of the fishers we make contact with, 70% of uneducated fishers will respond, and 90% of educated fishers will respond.
+
+
+5. Sampling procedure description: simple individual surveys
+
+
+6. Sampling procedure
+
+```{r}
+sims <- 1000 #simulations
+sam.n <- 80 #attempted sample size
+
+
+store <- rep(NA, sims)
+for (i in 1:sims){
+  store[i] <- mean(pop_reporting[sample(1:500,sam.n),] %>%
+                    # filter(R==1) %>%  ## If they are seen or "respond"
+                     pull(educated))
+}
+```
 
 

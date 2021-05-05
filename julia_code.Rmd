@@ -127,7 +127,7 @@ Are fish stocks increasing, decreasing or staying the same?
 For this measurement, fishers at various ports will be surveyed in person. This code declares a hypothetical population of fishers where we assume 100 fishers are reached by the survey, 50 at the main port and 50 at smaller ports. We assume that those at the main port will be more educated about the current fish stocks in the region and will have more awareness that they are declining due to illegal fishing. In this population, there is a correlation of 0.5 that fishers at the main port will be educated about overfishing. 
 
 *2. Declaration of the hypothetical population*
-```{r population, echo=FALSE}
+```{r, echo=FALSE}
 ## Declaring a population
 
 set.seed(228)
@@ -153,7 +153,7 @@ Also, availability:
 
 4. Declaration of reporting probabilities (response bias)
 
-```{r diff-reporting, echo=FALSE}
+```{r, echo=FALSE}
 
 reporting <- declare_assignment(blocks=main_port,
                   assignment_variable = "R", 
@@ -191,7 +191,7 @@ Fishers’ knowledge that staying out of the sanctuary can help white-spotted sp
 
 
 2. Declaration of the hypothetical population
-```{r population, echo=FALSE}
+```{r, echo=FALSE}
 ## Declaring a population
 
 set.seed(228)
@@ -217,7 +217,7 @@ Also, availability:
 
 4. Declaration of reporting probabilities (response bias)
 
-```{r diff-reporting, echo=FALSE}
+```{r, echo=FALSE}
 
 reporting <- declare_assignment(blocks=main_port,
                   assignment_variable = "R", 

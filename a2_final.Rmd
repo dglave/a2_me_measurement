@@ -1,0 +1,269 @@
+---
+title: "Assignment 2 Final Markdown"
+author: "Julia Dagum, Dylan Glave, David Segan"
+date: "5/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(DeclareDesign)
+library(knitr)
+library(kableExtra)
+library(gridExtra)
+```
+
+# ESM 232 Practicum 2: Measurement Strategy
+
+### Sampling Strategy
+
+Our project sources its base Theory of Change from *Rare*: https://www.europarc.org/wp-content/uploads/2015/05/2014-Theory-of-Change-Theory-of-Change.pdf
+
+### Measurement 1: Visual Underwater Surveys
+
+- The goal: Understand the ratio of fish stock biomass inside and outside of a sanctuary no-take zone. 
+- Method: Research divers move along two transects (4 sites per transect) inside and outside the sanctuary, twice per year. Once during spawning season for the species, once at six months after spawning
+
+#### 1. Description of sample population
+**Tracking Illegal Fishing Through Citizen Enforcement**
+
+Here we measure how sampling and response bias impact illegal fishing enforcement. Rare trains local fishers to track fishing within the sanctuary, but they do not enforce around the clock. 
+
+For that reason, we set a sample that sees nearly all illegal fishing during the day, and less at night. This is compounded by the fact that a larger proportion of illegal fishing happens at night. By using a correlation coefficient of -0.8, we created a population where most illegal fishing during the day is reported. 
+
+#### 2. Declaration of sample population
+Creating a population of fishers and illegal fishers. N = 100
+```{r}
+set.seed(228)
+
+# declare the population
+# total number of illegal fishing instances is 100, 755 at night and 25 in the day
+population_illegal <- declare_population(
+  fishers = add_level(N=100, 
+     night=sample(c(rep(0,25),rep(1,75))),
+     reported=correlate(given = night, rho = -0.8,
+                         draw_binary, prob = 0.5)
+))
+
+pop_illegal <- population_illegal()
+
+# Visualize the results using a kable() table. 
+
+kable(table(pop_illegal$night,pop_illegal$reported)) %>%
+ add_header_above(c("night"=1,"reported"=2))
+```
+
+Out of 100 instances of illegal fishing in the sanctuary, we see 75 counts of fishing at night, and only 40/75 are reported by the guards.
+
+Next we'll represent the fishers who were seen by enforcement officers. We'll assume enforcement is constant during daylight hours, and lower in the evenings. It's also likely that more illegal fishing will be take place in darkness. 
+
+#### 3. Challenges to drawing a representative sample
+Secondary bias may stem from local norms impacted by what a local enforcer would consider "illegal." This could include a friend or relative fishing illegally. E.g. in Tonga, fisher enforcers often start counting the third rule-breaking vessel as "illegal." We won't include this, as it's quite hard to quantify.  
+
+#### 4. Declaration of reporting probabilities
+```{r}
+reporting_illegal <- declare_assignment(blocks=night,
+                   assignment_variable = "R3", 
+                   block_prob=c(0.25,0.9))
+
+pop_reporting_illegal<- reporting_illegal(pop_illegal)
+
+#The first block (0) is night time, and second (1) is daytime 
+
+```
+
+#### 5. Description of sampling procedure 
+
+We’ll look at logbooks from enforcement officers at their posts over the course of the year. This won’t show all the fishing that goes on in the sanctuary, particularly that which goes on at night. Based on our larger sample of day-time enforcement (still not everyday) and smaller sample of night-time enforcement, we will try and make up for the bias associated with lower enforcement during night hours. We assume more illegal fishing goes on at night.
+
+#### 6. Declaration of sampling procedure
+```{r}
+
+sims <- 1000 #simulations
+sam.n <- 30 #attempted sample size
+
+
+store <- rep(NA, sims)
+for (i in 1:sims){
+  store[i] <- mean(pop_reporting_illegal[sample(1:100,sam.n),] %>%
+              filter(R3==1) %>%  ## If they are seen or "respond"
+                     pull(reported))
+}
+#store
+
+# we're taking a random sample of fishers, We are looking at how many fishers are reported for illegal fishing, but we do not include a reporting bias.  We do this "sims" number of times (1000).
+```
+
+#### Visualization
+
+```{r}
+sam_dist_illegal <- ggplot(data.frame(store), aes(x=store)) + 
+  geom_histogram(color="black", fill="white") +
+  xlab("Mean value of sample") +
+  geom_vline(xintercept = mean(pop_illegal$reported), linetype="dashed", 
+                color = "blue", size=1.5)
+
+sam_dist_illegal
+```
+
+Here we see our reporting bias due to day and night.
+
+### Measurement 2: Survey Question #1
+
+Fishers’ knowledge that staying out of the sanctuary can help white-spotted spinefoot recover: "Are fish stocks increasing, decreasing or staying the same?"
+
+#### 1. Description of the target population
+For this measurement, fishers at various ports will be surveyed in person. This code declares a hypothetical population of fishers where we assume 100 fishers are reached by the survey, 50 at the main port and 50 at smaller ports. We assume that those at the main port will be more educated about the current fish stocks in the region and will have more awareness that they are declining due to illegal fishing. In this population, there is a correlation of 0.8 that fishers at the main port will be educated about overfishing. We assume fishers are more likely to be aware of declining fish stocks, while they may be less likely to be aware that avoiding the sanctuary can help increase fish stocks (as shown in our second survey question).
+
+#### 2. Declaration of the hypothetical population
+```{r, echo=FALSE}
+## Declaring a population
+
+set.seed(228)
+# assumed "educated" characteristic of fisher population
+population_2 <- declare_population(
+  fishers = add_level(N=100,
+     main_port=sample(c(rep(0,50),rep(1,50))),
+     educated=correlate(given = main_port, rho = 0.8,
+                         draw_binary, prob = 0.5)
+
+))
+pop_2 <- population_2() # We're using Declare Design here to create a population of 100 fishers, half of which are educated (answer the question correctly). Then, we're telling R to use whether or not fishers are educated to determine whether they avoid the sanctuary. We assume that fisher location is correlated with knowledge about the issue of stock decreases.
+
+kable(table(pop_2$main_port,pop_2$educated)) %>% 
+  add_header_above(c("main_port"=1,"educated"=2))
+```
+
+Here we see that we've created a population where a correct answer to the survey question is correlated with fishers located at the main port. 
+
+#### 3. Description of challenges to drawing a representative sample 
+The challenges to drawing a representative sample likely involves an inability to access certain groups of fishers:
+    - There may not be a defined point of takeoff/return for fishers. Less educated fishers may be more likely to be departing from dispersed areas.
+    - Less educated fishers may be more likely to avoid surveyors.
+Also, availability: 
+- If we want to survey the same fishers each year to see if exact individual knowledge has changed, it may be hard to track them down.
+
+Of the fishers we make contact with, 70% of uneducated fishers will respond, and 90% of educated fishers will respond.
+
+#### 4. Declaration of reporting probabilities (response bias)
+
+```{r, echo=FALSE}
+
+reporting <- declare_assignment(blocks=main_port,
+                  assignment_variable = "R", 
+                  block_prob=c(0.7,0.9)) 
+pop_2 <- reporting(pop_2)
+# check it out
+kable(pop_2[1:10,])
+table(pop_2$main_port, pop_2$R)
+```
+
+#### 5. Description of sampling procedure
+The samples will be taken by surveying individual fishers at various ports. Since we assume that knowledge of declining fish stocks is highly correlated with location at the main port, we will make sure to survey at other ports as well and get a representative sample.
+
+#### 6. Declaration of sampling procedure
+```{r}
+sims <- 1000 #simulations
+sam.n <- 80 #attempted sample size
+
+
+store2 <- rep(NA, sims)
+for (i in 1:sims){
+  store2[i] <- mean(pop_2[sample(1:100,sam.n),] %>%
+                    # filter(R==1) %>%  ## If they are seen or "respond"
+                     pull(educated))
+}
+#store2
+```
+
+#### Visualization
+```{r}
+sam_dist_educated <- ggplot(data.frame(store2), aes(x=store2)) + 
+  geom_histogram(color="black", fill="white") +
+  xlab("Mean value of sample") +
+  geom_vline(xintercept = mean(pop_2$educated), linetype="dashed", 
+                color = "blue", size=1.5)
+
+sam_dist_educated
+```
+
+Here we see that our sample mean is fairly close to the actual distribution.
+
+### Measurement 3: Survey Question #2
+
+Fishers’ knowledge that staying out of the sanctuary can help white-spotted spinefoot recover:  "What is the best way to help the recovery of the white-spotted spinefoot fish and sustain long-term fishing viability?"
+
+#### 1. Description of the hypothetical population
+This population is similar to the population for our first survey question, except we assume a slightly lower correlation coefficient of rho = 0.5. This is because we assume that fishers at the main port may be highly educated about declining fish stocks but may not be as aware that avoiding fishing in the sanctuary can prevent the decline of fish stocks.
+
+#### 2. Declaration of the hypothetical population
+```{r, echo=FALSE}
+## Declaring a population
+
+set.seed(228)
+# assumed "educated" characteristic of fisher population
+population_3 <- declare_population(
+  fishers = add_level(N=100,
+     main_port=sample(c(rep(0,50),rep(1,50))),
+     educated2=correlate(given = main_port, rho = 0.5,
+                         draw_binary, prob = 0.5)
+
+))
+pop_3 <- population_3() # We're using Declare Design here to create a population of 100 fishers, half of which are educated (answer the question correctly). Then, we're telling R to use whether or not fishers are educated on how to help white-spotted spinefoot recover. We assume that fisher location is correlated with knowledge about the best way to help solve the issue.
+
+kable(table(pop_3$main_port,pop_3$educated2)) %>% 
+  add_header_above(c("main_port"=1,"educated"=2))
+```
+
+#### 3.Challenges to drawing a representative sample
+
+The challenges are the same as question 1. The challenges to drawing a representative sample likely involves an inability to access certain groups of fishers:
+    - There may not be a defined point of takeoff/return for fishers. Less educated fishers may be more likely to be departing from dispersed areas.
+    - Less educated fishers may be more likely to avoid surveyors.
+Also, availability: 
+- If we want to survey the same fishers each year to see if exact individual knowledge has changed, it may be hard to track them down.
+
+#### 4. Declaration of reporting probabilities (response bias)
+```{r, echo=FALSE}
+
+reporting2 <- declare_assignment(blocks=main_port,
+                  assignment_variable = "R2", 
+                  block_prob=c(0.7,0.9)) 
+pop_reporting2 <- reporting2(pop_3)
+# check it out
+kable(pop_reporting2[1:10,])
+table(pop_reporting2$main_port, pop_reporting2$R2)
+```
+
+Of the fishers we make contact with, 70% of uneducated fishers will respond, and 90% of educated fishers will respond.
+
+#### 5. Description of sampling procedure 
+The sampling procedure is simple individual surveys. Fishers at various ports will be surveyed to reduce bias from fishers being more educated at the main port. 
+
+#### 6. Declaration of sampling procedure
+```{r}
+sims <- 1000 #simulations
+sam.n <- 80 #attempted sample size
+
+
+store3 <- rep(NA, sims)
+for (i in 1:sims){
+  store3[i] <- mean(pop_reporting2[sample(1:100,sam.n),] %>%
+                    # filter(R==1) %>%  ## If they are seen or "respond"
+                     pull(educated2))
+}
+```
+
+#### Visualization
+```{r}
+sam_dist_educated2 <- ggplot(data.frame(store3), aes(x=store3)) + 
+  geom_histogram(color="black", fill="white") +
+  xlab("Mean value of sample") +
+  geom_vline(xintercept = mean(pop_3$educated2), linetype="dashed", 
+                color = "blue", size=1.5)
+
+sam_dist_educated2
+```
+
+Here we see that our sample mean is fairly close to the actual distribution.

@@ -13,15 +13,15 @@ library(knitr)
 library(kableExtra)
 ```
 
+# Sampling Strategies
+
+Our project sources its base Theory of Change from *Rare*: https://www.europarc.org/wp-content/uploads/2015/05/2014-Theory-of-Change-Theory-of-Change.pdf
 
 
-Our porject sources its base Theory of Change from *Rare*: https://www.europarc.org/wp-content/uploads/2015/05/2014-Theory-of-Change-Theory-of-Change.pdf
 
+#### Visual Underwater Surveys
 
-
-#### Visual Underwater Survers
-
-- The goal: Understand the ratio of fishstock biomass inside and outside of a sanctuary no-take zone. 
+- The goal: Understand the ratio of fish stock biomass inside and outside of a sanctuary no-take zone. 
 - Method: Research divers move along two transects (4 sites per transect) inside and outside the sanctuary, twice per year. Once during spawning season for the species, once at six months after spawning
 - We'll categorize the possible rations by dividing the "outside" fish biomass (numbers of adults) with "inside" fish. We expect this measurement to between 0 and 1. But the possibility remains of sampling more adult fish outside of the sanctuary. Because of this, I'll leave the possible outputs on a continuous scale with limits of 0 and 2. (Our goal for economic fishery productivity is 0.6, per Rare's other resources.)
 

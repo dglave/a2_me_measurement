@@ -1,6 +1,6 @@
 ---
-title: "Assignment 2"
-author: "Dylan Glave"
+title: "Assignment 2, Sample Bais"
+author: "David Segan, Julia Dagum, Dylan Glave"
 date: "4/27/2021"
 output: html_document
 ---
@@ -15,53 +15,39 @@ library(kableExtra)
 
 
 
-Base Theory of Change from Rare: https://www.europarc.org/wp-content/uploads/2015/05/2014-Theory-of-Change-Theory-of-Change.pdf
+Our porject sources its base Theory of Change from *Rare*: https://www.europarc.org/wp-content/uploads/2015/05/2014-Theory-of-Change-Theory-of-Change.pdf
 
 
-[]
 
-
-#### I'll start by exploring code to code out responses for visual underwater surveys. 
+#### Visual Underwater Survers
 
 - The goal: Understand the ratio of fishstock biomass inside and outside of a sanctuary no-take zone. 
-- Method: Research divers move along two transects (4 sites per transect) inside and outside the sanctuary, twice per year. Once during psawning season for the species, once at six months after spawning
-- We'll categorize the possible rations by dividing the "outside" fish biomass (numbers of adults) with "inside" fish. We expect this measurement to between 0 and 1. But the possibility remains of sampling more adult fish outside of the sanctuary. Because of this, I'll leave the possible outputs on a continuos scale with limits of 0 and 2. (Our goal for economic fishery productivity is 0.6, per Rare's other resources.)
+- Method: Research divers move along two transects (4 sites per transect) inside and outside the sanctuary, twice per year. Once during spawning season for the species, once at six months after spawning
+- We'll categorize the possible rations by dividing the "outside" fish biomass (numbers of adults) with "inside" fish. We expect this measurement to between 0 and 1. But the possibility remains of sampling more adult fish outside of the sanctuary. Because of this, I'll leave the possible outputs on a continuous scale with limits of 0 and 2. (Our goal for economic fishery productivity is 0.6, per Rare's other resources.)
+
+ So. That was silly to start with underwater dive surveys. Let's look at..guard logbooks instead. 
 
 
-```{r}
-# Exploratory code chunk
+#### Tracking Illegal Fishing Through Citizen Enforcement
 
-set.seed(228)
+Here we measure how sampling and response bias impact illegal fishing enforcement. Rare trains local fishers to track fishing within the local Sanctuary, but they do not enforce around the clock. 
 
-population <- declare_population( #what would go here??
-  transect_sites = add_level(N = 8,
-            not_scared=sample(c(rep(0,250),rep(1,250)))                
-  )
-)
+For that reason, we set a sample that sees nearly all illegal fishing during the day, and less at night. This is compounded by the fact that a larger proportion of illegal fishing happens at night. 
 
-pop <- population()
-
-```
-
-
-
-Note to Dyl: Ok, that was silly to start with underwater dive surveys. Let's look at..guard logbooks. 
-
-
-
+#### Creating a population of fishers and illegal fishers. N = 100
 ```{r}
 set.seed(228)
-
 
 
 population_illegal <- declare_population(
-  fishers = add_level(N=75, 
-     illegal_fishing=sample(c(rep(0,50),rep(1,25))),
+  fishers = add_level(N=100, 
+     illegal_fishing=sample(c(rep(0,75),rep(1,25))),
      reported=correlate(given = illegal_fishing, rho = 0.5,
-                         draw_binary, prob = 0.7)
+                         draw_binary, prob = 0.6)
 ))
 
 pop_illegal <- population_illegal()
+
 
 ## Using Mark's code, I made the total number of fishers "fishers" N=75
 ## Then created "illegal_fishing" to represent the total fishers who fish in the sanctuary. ***Not sure how to do this, since I said that each vessel SEEN in the sanctuary is reported, and that would mean the same vessel can be counted twice***
@@ -73,21 +59,30 @@ kable(table(pop_illegal$illegal_fishing,pop_illegal$reported)) %>%
  add_header_above(c("illegal_fishing"=1,"reported"=2))
 
 ```
-Here, we see out of 75 fishers in the region, we see 25 counts of fishing illegally, 13/15 are reported by the *guards*  
+Here, we see out of 100 fishers in the region, we see 25 counts of fishing illegally, *21/25* are reported by the *guards*  
 
 I'll look at how we would view a response bias
 
 
 ## Declaring response bias
-I first wrote this out ot try and represent the fishers who were "seen" by enforcement officers. However, 
+I first wrote this out to try and represent the fishers who were "seen" by enforcement officers. 
+We'll say that enforcement is constant during daylight hours, and lower in the evenings. It's also likely that more illegal fishing will be take place in darkness. 
+
+Secondary bias may stem from local norms impacted what a local enforcer would consider "illegal." This could include a friend or relative fishing illegally. E.g. in Tonga, fisher enforcers often start counting the third rule-breaking vessel as "illegal." We won't include this, as it's quite hard to quantify.  
 ```{r}
-# reporting <- declare_assignment(blocks=illegal_fishing,
-#                   assignment_variable = "R", 
-#                   block_prob=c(0.2,0.5))
+reporting_illegal <- declare_assignment(blocks=illegal_fishing,
+                   assignment_variable = "R3", 
+                   block_prob=c(0.25,0.9))
+
+pop_reporting_illegal<- reporting_illegal(pop_illegal)
+
+
+#The first block (0) is night time, and second (1) is daytime 
 
 ```
 
-Let's create a sample population, and I'll try and do some simulations! 
+
+##### Let's create a sample population, and I'll try and do some simulations! 
 ```{r samp-character, echo=FALSE}
 
 sims <- 1000 #simulations
@@ -96,13 +91,31 @@ sam.n <- 30 #attempted sample size
 
 store <- rep(NA, sims)
 for (i in 1:sims){
-  store[i] <- mean(pop_illegal[sample(1:500,sam.n),] %>%
-                    # filter(R==1) %>%  ## If they are seen or "respond"
+  store[i] <- mean(pop_reporting_illegal[sample(1:sam.n),] %>%
+              filter(R3==1) %>%  ## If they are seen or "respond"
                      pull(reported))
 }
+store
+
+kable(pop_illegal[1:10,])
+table(pop_illegal$educated, pop_reporting$R)
 # we're taking a random sample of fishers, We are looking at how many fishers are reported for illegal fishing, but we do not include a reporting bias.  We do this "sims" number of times (1000).
 
 ```
+
+
+#### Visualziation
+
+```{r}
+sam_dist_illegal <- ggplot(data.frame(store), aes(x=store)) + 
+  geom_histogram(color="black", fill="white") +
+  xlab("Mean value of sample") +
+  geom_vline(xintercept = mean(pop_illegal$reported), linetype="dashed", 
+                color = "blue", size=1.5)
+
+sam_dist_illegal
+```
+Here we see how our reporting bias due to day and night 
 
 
 #### Survey Question 1: 

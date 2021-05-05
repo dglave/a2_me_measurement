@@ -117,7 +117,7 @@ Fishers’ knowledge that staying out of the sanctuary can help white-spotted sp
 For this measurement, fishers at various ports will be surveyed in person. This code declares a hypothetical population of fishers where we assume 100 fishers are reached by the survey, 50 at the main port and 50 at smaller ports. We assume that those at the main port will be more educated about the current fish stocks in the region and will have more awareness that they are declining due to illegal fishing. In this population, there is a correlation of 0.8 that fishers at the main port will be educated about overfishing. We assume fishers are more likely to be aware of declining fish stocks, while they may be less likely to be aware that avoiding the sanctuary can help increase fish stocks (as shown in our second survey question).
 
 #### 2. Declaration of the hypothetical population
-```{r, echo=FALSE}
+```{r}
 ## Declaring a population
 
 set.seed(228)
@@ -148,7 +148,7 @@ Of the fishers we make contact with, 70% of uneducated fishers will respond, and
 
 #### 4. Declaration of reporting probabilities (response bias)
 
-```{r, echo=FALSE}
+```{r}
 
 reporting <- declare_assignment(blocks=main_port,
                   assignment_variable = "R", 
@@ -198,7 +198,7 @@ Fishers’ knowledge that staying out of the sanctuary can help white-spotted sp
 This population is similar to the population for our first survey question, except we assume a slightly lower correlation coefficient of rho = 0.5. This is because we assume that fishers at the main port may be highly educated about declining fish stocks but may not be as aware that avoiding fishing in the sanctuary can prevent the decline of fish stocks.
 
 #### 2. Declaration of the hypothetical population
-```{r, echo=FALSE}
+```{r}
 ## Declaring a population
 
 set.seed(228)
@@ -225,7 +225,7 @@ Also, availability:
 - If we want to survey the same fishers each year to see if exact individual knowledge has changed, it may be hard to track them down.
 
 #### 4. Declaration of reporting probabilities (response bias)
-```{r, echo=FALSE}
+```{r}
 
 reporting2 <- declare_assignment(blocks=main_port,
                   assignment_variable = "R2", 

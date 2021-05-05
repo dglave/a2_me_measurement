@@ -132,13 +132,13 @@ set.seed(228)
 population_2 <- declare_population(
   fishers = add_level(N=100,
      main_port=sample(c(rep(0,50),rep(1,50))),
-     educated=correlate(given = educated, rho = 0.5,
+     educated=correlate(given = main_port, rho = 0.5,
                          draw_binary, prob = 0.5)
 
 ))
 pop_2 <- population_2() #PH: we're using Declare Design here to create a population of 100 fishers, half of which are educated (answer the question correctly). Then, we're telling R to use whether or not fishers are educated to determine whether they avoid the sanctuary. We assume that fisher knowledge about the issue of stock decreases is correlated with the preventative measure of avoiding the sanctuary.
 
-kable(table(pop_2$educated,pop_2$avoid_sanctuary)) %>% 
+kable(table(pop_2$main_port,pop_2$educated)) %>% 
   add_header_above(c("main_port"=1,"educated"=2))
 ```
 
@@ -152,13 +152,13 @@ Also, availability:
 
 ```{r diff-reporting, echo=FALSE}
 
-reporting <- declare_assignment(blocks=educated,
+reporting <- declare_assignment(blocks=main_port,
                   assignment_variable = "R", 
                   block_prob=c(0.7,0.9)) 
 pop_reporting <- reporting(pop_2)
 # check it out
 kable(pop_reporting[1:10,])
-table(pop_reporting$educated, pop_reporting$R)
+table(pop_reporting$main_port, pop_reporting$R)
 ```
 
 Of the fishers we make contact with, 70% of uneducated fishers will respond, and 90% of educated fishers will respond.

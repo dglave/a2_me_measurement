@@ -136,7 +136,7 @@ population_2 <- declare_population(
                          draw_binary, prob = 0.5)
 
 ))
-pop_2 <- population_2() #PH: we're using Declare Design here to create a population of 100 fishers, half of which are educated (answer the question correctly). Then, we're telling R to use whether or not fishers are educated to determine whether they avoid the sanctuary. We assume that fisher knowledge about the issue of stock decreases is correlated with the preventative measure of avoiding the sanctuary.
+pop_2 <- population_2() #PH: we're using Declare Design here to create a population of 100 fishers, half of which are educated (answer the question correctly). Then, we're telling R to use whether or not fishers are educated to determine whether they avoid the sanctuary. We assume that fisher location is correlated with knowledge about the issue of stock decreases.
 
 kable(table(pop_2$main_port,pop_2$educated)) %>% 
   add_header_above(c("main_port"=1,"educated"=2))
@@ -182,4 +182,66 @@ for (i in 1:sims){
 }
 ```
 
+#### Survey Question 2: 
 
+Fishers’ knowledge that staying out of the sanctuary can help white-spotted spinefoot recover:  "What is the best way to help the recovery of the white-spotted spinefoot fish and sustain long-term fishing viability?"
+
+
+2. Declaration of the hypothetical population
+```{r population, echo=FALSE}
+## Declaring a population
+
+set.seed(228)
+# assumed "educated" characteristic of fisher population
+population_2 <- declare_population(
+  fishers = add_level(N=100,
+     main_port=sample(c(rep(0,50),rep(1,50))),
+     educated2=correlate(given = main_port, rho = 0.5,
+                         draw_binary, prob = 0.5)
+
+))
+pop_2 <- population_2() #PH: we're using Declare Design here to create a population of 100 fishers, half of which are educated (answer the question correctly). Then, we're telling R to use whether or not fishers are educated on how to help white-spotted spinefoot recover. We assume that fisher location is correlated with knowledge about the best way to help solve the issue.
+
+kable(table(pop_2$main_port,pop_2$educated2)) %>% 
+  add_header_above(c("main_port"=1,"educated"=2))
+```
+
+3. Same as question 1. The challenges to drawing a representative sample likely involves an inability to access certain groups of fishers:
+    - There may not be a defined point of takeoff/return for fishers. Less educated fishers may be more likely to be departing from dispersed areas.
+    - Less educated fishers may be more likely to avoid surveyers.
+Also, availability: 
+- If we want to survey the same fishers each year to see if exact individual knowledge has changed, it may be hard to track them down.
+
+4. Declaration of reporting probabilities (response bias)
+
+```{r diff-reporting, echo=FALSE}
+
+reporting <- declare_assignment(blocks=main_port,
+                  assignment_variable = "R", 
+                  block_prob=c(0.7,0.9)) 
+pop_reporting <- reporting(pop_2)
+# check it out
+kable(pop_reporting[1:10,])
+table(pop_reporting$main_port, pop_reporting$R)
+```
+
+Of the fishers we make contact with, 70% of uneducated fishers will respond, and 90% of educated fishers will respond.
+
+
+5. Sampling procedure description: simple individual surveys
+
+
+6. Sampling procedure
+
+```{r}
+sims <- 1000 #simulations
+sam.n <- 80 #attempted sample size
+
+
+store <- rep(NA, sims)
+for (i in 1:sims){
+  store[i] <- mean(pop_reporting[sample(1:500,sam.n),] %>%
+                    # filter(R==1) %>%  ## If they are seen or "respond"
+                     pull(educated2))
+}
+```
